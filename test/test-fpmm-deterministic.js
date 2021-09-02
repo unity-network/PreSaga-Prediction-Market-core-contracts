@@ -104,12 +104,13 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
                     },
                     [
                       web3.eth.abi.encodeParameters(
-                        ["address", "address", "bytes32[]", "uint"],
+                        ["address", "address", "bytes32[]", "uint", "address"],
                         [
                           conditionalTokens.address,
                           collateralToken.address,
                           [conditionId],
                           feeFactor.toString(),
+                          creator,
                         ]
                       ),
                     ]
@@ -161,9 +162,7 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
         await conditionalTokens.balanceOf(creator, positionIds[i])
       ).should.be.a.bignumber.equal(initialFunds.sub(expectedFundedAmounts[i]));
 
-      const marketIsOpen = await fixedProductMarketMaker.closed(); //checks if the state of the market is initially set to true (open)
-
-      (await fixedProductMarketMaker.closed()).should.be.equal(false);
+      (await fixedProductMarketMaker.closed()).should.be.equal(false); //checks if the state of the market is initially set to open
     }
   });
 
@@ -174,11 +173,9 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
   );
 
   step(
-    "Owner address is correctly set to creator address at AMM creation",
+    "Owner address is correctly set to owner at creation",
     async function () {
       const ownerAddress = await fixedProductMarketMaker.owner();
-
-      console.log(ownerAddress, "owner");
 
       (await fixedProductMarketMaker.owner()).should.be.equal(creator);
     }

@@ -51,13 +51,13 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
     IERC20 public collateralToken;
     bytes32[] public conditionIds;
     uint256 public fee;
+    address public owner;
     uint256 internal feePoolWeight;
     uint256[] outcomeSlotCounts;
     bytes32[][] collectionIds;
     uint256[] positionIds;
     mapping(address => uint256) withdrawnFees;
     uint256 internal totalWithdrawnFees;
-    address public owner;
     bool public closed;
     modifier isOpen() {
         //if applied to the buy and sell functions will prevent users from buying or selling until the market is open
@@ -230,7 +230,7 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
 
             mintAmount = addedFunds;
             //sets the state market to open when initially funded
-            if (owner == address(0)) owner = tx.origin; //sets the owner to the address at the origin of the transaction (the creator)
+            //if (owner == address(0)) owner = tx.origin; //sets the owner to the address at the origin of the transaction (the creator)
         }
 
         require(
@@ -512,6 +512,7 @@ contract FixedProductMarketMakerData {
     IERC20 internal collateralToken;
     bytes32[] internal conditionIds;
     uint256 internal fee;
+    address internal owner;
     uint256 internal feePoolWeight;
 
     uint256[] internal outcomeSlotCounts;
