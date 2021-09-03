@@ -40,25 +40,33 @@ Automated Market Makers for the Prediction Markets 2.0 (Conditional Tokens) plat
 
 Well, we believe that trading with your money in Presaga should be as fair as possible, and to make the market behave in a very correct way as to not turn into a wild west, we thought it would be best to have more control over the market. And to control every market we needed to upgrade the priviliges in the actual smart contracts by giving the owner (who is also the oracle) the exclusive right to close or open the market when the community sees fit. So that trading would become impossible specially when we are betting on a soccer game or the olympics. The result can be obvious at the last minutes, and we want our markets to be closed during the match, during moment of no uncertainty!
 
-At the heart of Presaga you will find the Deterministic Fixed Price Market Maker Factory smart contract that is responsible for creating the market maker in a deterministic way. Here is how the factory works and how we upgraded priviliges in the market makers.
+At the heart of Presaga you will find the Deterministic Fixed Price Market Maker Factory smart contract that is responsible for creating the market maker in a deterministic way. Here are the 2 main changes made to the smart contracts in order to upgrade priviliges of the creator :
 
-- How the factory works:
+- Each MM will have a creator/owner :
 
-The factory is considered the first liquidity provider of the fixed product market maker, once it is created the initial funds are minted to the factory which in its turn transfers them back to the oracle(the creator of the market maker). And that's why we set the owner of the market maker using the `tx.orign` at the moment of the initial funding :
+We initialize the owner of the MM to the `msg.sender` using `create2Clone` at the moment of creation as shown below:
 
 ```Solidity
-function addFunding(uint256 addedFunds, uint256[] calldata distributionHint)
-        external
-        isOpen
-    {
-    ...
-if (owner == address(0)) owner = tx.origin; //sets the owner to the address at the origin of the transaction (the creator of the AMM)
-}
+ address owner = msg.sender;
+ FixedProductMarketMaker fixedProductMarketMaker = FixedProductMarketMaker(
+                create2Clone(
+                    address(implementationMaster),
+                    saltNonce,
+                    abi.encode(
+                        conditionalTokens,
+                        collateralToken,
+                        conditionIds,
+                        fee,
+                        owner // is owner and oracle
+                    )
+                )
+            );
 
 ```
 
-- Closing & opening the market :
-  Closing and opening a market maker is now possible thanks to the new modifier `isOpen` :
+- Markets can be closed & opened by the owner :
+
+Closing and opening a market maker is now possible thanks to the new modifier `isOpen` :
 
 ```Solidity
 modifier isOpen() {
