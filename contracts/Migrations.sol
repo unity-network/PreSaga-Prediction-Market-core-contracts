@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity >=0.5.0;
 
 // HACK: should be removed along with the hack-ey migration
 // when https://github.com/trufflesuite/truffle/pull/1085 hits

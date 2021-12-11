@@ -1,5 +1,5 @@
 // This is a backported hooked OpenZeppelin ERC 20 implementation
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity >=0.5.1;
 
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
@@ -29,7 +29,7 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
     );
     event FPMMBuy(
         address indexed buyer,
-        uint256 investmentAmount,
+        uint256 indexed investmentAmount,
         uint256 feeAmount,
         uint256 indexed outcomeIndex,
         uint256 outcomeTokensBought
@@ -39,7 +39,7 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
         uint256 returnAmount,
         uint256 feeAmount,
         uint256 indexed outcomeIndex,
-        uint256 outcomeTokensSold
+        uint256 indexed outcomeTokensSold
     );
 
     using SafeMath for uint256;
@@ -52,16 +52,29 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
     bytes32[] public conditionIds;
     uint256 public fee;
     address public owner;
+    string public question;
+    uint256 public endDate;
     uint256 internal feePoolWeight;
     uint256[] outcomeSlotCounts;
     bytes32[][] collectionIds;
     uint256[] positionIds;
     mapping(address => uint256) withdrawnFees;
     uint256 internal totalWithdrawnFees;
-    bool public closed;
+    bool public closed = false;
+    bool public resolved = false;
+    bool public inDispute = false;
     modifier isOpen() {
         //if applied to the buy and sell functions will prevent users from buying or selling until the market is open
         require(!closed, "Market is closed");
+        _;
+    }
+    modifier isResolved() {
+        //prevents LPs from removing funds before market is resolved
+        require(resolved, "Market is not resolved yet");
+        _;
+    }
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner!");
         _;
     }
 
@@ -172,12 +185,20 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
         }
     }
 
-    function changeMarketState() public {
+    function changeMarketState() public onlyOwner {
         //if market is open sets it to closed and vice versa
 
         //only owner/oracle has the right to update market state
-        require(msg.sender == owner, "Only owner!");
+
         closed = !closed;
+    }
+
+    function setMarketStateToResolved() public onlyOwner {
+        resolved = true;
+    }
+
+    function setMarketEndDate(uint256 _endDate) public onlyOwner {
+        endDate = _endDate;
     }
 
     function addFunding(uint256 addedFunds, uint256[] calldata distributionHint)
@@ -229,8 +250,6 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
             }
 
             mintAmount = addedFunds;
-            //sets the state market to open when initially funded
-            //if (owner == address(0)) owner = tx.origin; //sets the owner to the address at the origin of the transaction (the creator)
         }
 
         require(
@@ -261,7 +280,7 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
         emit FPMMFundingAdded(msg.sender, sendBackAmounts, mintAmount);
     }
 
-    function removeFunding(uint256 sharesToBurn) external isOpen {
+    function removeFunding(uint256 sharesToBurn) external isResolved {
         uint256[] memory poolBalances = getPoolBalances();
 
         uint256[] memory sendAmounts = new uint256[](poolBalances.length);
@@ -513,8 +532,9 @@ contract FixedProductMarketMakerData {
     bytes32[] internal conditionIds;
     uint256 internal fee;
     address internal owner;
+    string internal question;
+    uint256 internal endDate;
     uint256 internal feePoolWeight;
-
     uint256[] internal outcomeSlotCounts;
     bytes32[][] internal collectionIds;
     uint256[] internal positionIds;

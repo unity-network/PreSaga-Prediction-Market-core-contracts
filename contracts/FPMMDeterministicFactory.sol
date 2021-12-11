@@ -1,4 +1,4 @@
-pragma solidity ^0.5.1;
+pragma solidity >=0.5.1;
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {ConditionalTokens} from "@gnosis.pm/conditional-tokens-contracts/contracts/ConditionalTokens.sol";
@@ -14,7 +14,7 @@ contract FPMMDeterministicFactory is
 {
     event FixedProductMarketMakerCreation(
         address indexed creator,
-        FixedProductMarketMaker fixedProductMarketMaker,
+        FixedProductMarketMaker indexed fixedProductMarketMaker,
         ConditionalTokens conditionalTokens,
         IERC20 collateralToken,
         bytes32[] conditionIds,
@@ -23,9 +23,14 @@ contract FPMMDeterministicFactory is
 
     FixedProductMarketMaker public implementationMaster;
     address internal currentFunder;
+    address[] public markets;
 
     constructor() public {
         implementationMaster = new FixedProductMarketMaker();
+    }
+
+    function getMarketsLength() public view returns (uint256) {
+        return markets.length;
     }
 
     function cloneConstructor(bytes calldata consData) external {
@@ -34,10 +39,11 @@ contract FPMMDeterministicFactory is
             IERC20 _collateralToken,
             bytes32[] memory _conditionIds,
             uint256 _fee,
-            address _owner
+            address _owner,
+            string memory _question
         ) = abi.decode(
                 consData,
-                (ConditionalTokens, IERC20, bytes32[], uint256, address)
+                (ConditionalTokens, IERC20, bytes32[], uint256, address, string)
             );
 
         _supportedInterfaces[_INTERFACE_ID_ERC165] = true;
@@ -51,6 +57,7 @@ contract FPMMDeterministicFactory is
         conditionIds = _conditionIds;
         fee = _fee;
         owner = _owner;
+        question = _question;
 
         uint256 atomicOutcomeSlotCount = 1;
         outcomeSlotCounts = new uint256[](conditionIds.length);
@@ -140,9 +147,11 @@ contract FPMMDeterministicFactory is
         bytes32[] calldata conditionIds,
         uint256 fee,
         uint256 initialFunds,
-        uint256[] calldata distributionHint
+        uint256[] calldata distributionHint,
+        string calldata question
     ) external returns (FixedProductMarketMaker) {
         address owner = msg.sender;
+
         FixedProductMarketMaker fixedProductMarketMaker = FixedProductMarketMaker(
                 create2Clone(
                     address(implementationMaster),
@@ -152,10 +161,12 @@ contract FPMMDeterministicFactory is
                         collateralToken,
                         conditionIds,
                         fee,
-                        owner
+                        owner,
+                        question
                     )
                 )
             );
+        markets.push(address(fixedProductMarketMaker));
         emit FixedProductMarketMakerCreation(
             msg.sender,
             fixedProductMarketMaker,

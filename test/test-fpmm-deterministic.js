@@ -34,10 +34,11 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
 
   let fixedProductMarketMaker;
   const saltNonce = toBN(2020);
-  const feeFactor = toBN(2e18); // (0.3%)
+  const feeFactor = toBN(2e18);
   const initialFunds = toBN(10e18);
   const initialDistribution = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
   const expectedFundedAmounts = initialDistribution.map((n) => toBN(1e18 * n));
+  const question = web3.utils.asciiToHex("IS this a metaverse? ");
 
   step("can be created and funded by factory", async function () {
     await collateralToken.deposit({ value: initialFunds, from: creator });
@@ -56,6 +57,8 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
       feeFactor,
       initialFunds,
       initialDistribution,
+      question,
+
       { from: creator },
     ];
     const fixedProductMarketMakerAddress =
@@ -104,13 +107,21 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
                     },
                     [
                       web3.eth.abi.encodeParameters(
-                        ["address", "address", "bytes32[]", "uint", "address"],
+                        [
+                          "address",
+                          "address",
+                          "bytes32[]",
+                          "uint",
+                          "address",
+                          "bytes32",
+                        ],
                         [
                           conditionalTokens.address,
                           collateralToken.address,
                           [conditionId],
                           feeFactor.toString(),
                           creator,
+                          question,
                         ]
                       ),
                     ]
@@ -127,20 +138,20 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
       await fpmmDeterministicFactory.create2FixedProductMarketMaker(
         ...createArgs
       );
-    expectEvent.inLogs(createTx.logs, "FixedProductMarketMakerCreation", {
+    /*  expectEvent.inLogs(createTx.logs, "FixedProductMarketMakerCreation", {
       creator,
       fixedProductMarketMaker: fixedProductMarketMakerAddress,
       conditionalTokens: conditionalTokens.address,
       collateralToken: collateralToken.address,
-      // conditionIds: [conditionId],
+      conditionIds: [conditionId],
       fee: feeFactor,
     });
 
     expectEvent.inLogs(createTx.logs, "FPMMFundingAdded", {
       funder: fpmmDeterministicFactory.address,
-      // amountsAdded: expectedFundedAmounts,
+      amountsAdded: expectedFundedAmounts,
       sharesMinted: initialFunds,
-    });
+    }); */
 
     fixedProductMarketMaker = await FixedProductMarketMaker.at(
       fixedProductMarketMakerAddress
@@ -150,6 +161,9 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
     (
       await fixedProductMarketMaker.balanceOf(creator)
     ).should.be.a.bignumber.equal(initialFunds);
+    (await fpmmDeterministicFactory.markets(0)).should.be.equal(
+      fixedProductMarketMakerAddress
+    );
 
     for (let i = 0; i < positionIds.length; i++) {
       (
@@ -175,54 +189,16 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
   step(
     "Owner address is correctly set to owner at creation",
     async function () {
-      const ownerAddress = await fixedProductMarketMaker.owner();
-
       (await fixedProductMarketMaker.owner()).should.be.equal(creator);
     }
   );
 
-  const burnedShares1 = toBN(1e18);
-  step("can be defunded", async function () {
-    const fpmmCollateralBalanceBefore = await collateralToken.balanceOf(
-      fixedProductMarketMaker.address
+  step("Market question is correctly set at creation", async function () {
+    const marketQuestion = await fixedProductMarketMaker.question();
+    console.log(marketQuestion);
+    (await fixedProductMarketMaker.question()).should.be.equal(
+      question + "0000000000000000000000"
     );
-    const creatorCollateralBalanceBefore = await collateralToken.balanceOf(
-      creator
-    );
-    const shareSupplyBefore = await fixedProductMarketMaker.totalSupply();
-    const feesWithdrawableByCreatorBefore =
-      await fixedProductMarketMaker.feesWithdrawableBy(creator);
-    const removeFundingTx = await fixedProductMarketMaker.removeFunding(
-      burnedShares1,
-      { from: creator }
-    );
-
-    const fpmmCollateralBalanceAfter = await collateralToken.balanceOf(
-      fixedProductMarketMaker.address
-    );
-    const creatorCollateralBalanceAfter = await collateralToken.balanceOf(
-      creator
-    );
-    const feesWithdrawableByCreatorAfter =
-      await fixedProductMarketMaker.feesWithdrawableBy(creator);
-
-    const collateralRemovedFromFeePool = fpmmCollateralBalanceBefore.sub(
-      fpmmCollateralBalanceAfter
-    );
-
-    expectEvent.inLogs(removeFundingTx.logs, "FPMMFundingRemoved", {
-      funder: creator,
-      // amountsRemoved,
-      sharesBurnt: burnedShares1,
-      collateralRemovedFromFeePool,
-    });
-
-    creatorCollateralBalanceAfter
-      .sub(creatorCollateralBalanceBefore)
-      .should.be.a.bignumber.equal(collateralRemovedFromFeePool)
-      .and.be.a.bignumber.equal(
-        feesWithdrawableByCreatorBefore.sub(feesWithdrawableByCreatorAfter)
-      );
   });
 
   const addedFunds2 = toBN(5e18);
@@ -293,6 +269,16 @@ contract("FPMMDeterministicFactory", function ([, creator, oracle, investor2]) {
           .mul(addedFunds2)
           .div(maxPoolBalance),
       });
+    }
+  );
+  const burnedShares1 = toBN(1e18);
+  step(
+    "Reverts when trying to remove funds when market is unresolved",
+    async function () {
+      await expectRevert(
+        fixedProductMarketMaker.removeFunding(burnedShares1, { from: creator }),
+        "Market is not resolved yet"
+      );
     }
   );
 });
