@@ -186,11 +186,7 @@ contract FixedProductMarketMaker is ERC20, ERC1155TokenReceiver {
     }
 
     function changeMarketState() public onlyOwner {
-        //if market is open sets it to closed and vice versa
-
-        //only owner/oracle has the right to update market state
-
-        closed = !closed;
+       closed = !closed;
     }
 
     function setMarketStateToResolved() public onlyOwner {
