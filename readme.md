@@ -2,23 +2,20 @@
 
 About Presaga : https://unitynetwork.medium.com/presaga-a-summary-of-unity-networks-first-dapp-6012f84693a8
 
-## Presaga_core_contracts
+## Presaga Overview
 
-All the smart contracts were borrowed from Gnosis and to whom we owe a lot for providing the whole DeFi community solid and very reliable smart contracts.
+Use case diagram
 
-It's also worth noting the key changes we have made to the smart contracts in order to make them suit the needs of Presaga and its community best.
+<img width="641" alt="presaga_use_case" src="https://user-images.githubusercontent.com/37840702/187070267-0579d554-7395-487b-b89f-2e19c1cc285c.png">
 
----
+### Presaga core contracts
 
-Check out full documentation of Gnosis here :
-Automated Market Makers for the Prediction Markets 2.0 (Conditional Tokens) platform.
-
-- Online Documentation: https://docs.gnosis.io/conditionaltokens/
-- Gnosis: https://gnosis.io
+![presaga_diag](https://user-images.githubusercontent.com/37840702/187070890-963464b4-8262-47ff-a60e-ee34a6035ed5.png)
 
 ---
 
-# Smart contracts deployment:
+
+# Deployed contracts:
 
 
 
@@ -31,12 +28,21 @@ UNT Token (Collateral token) = "0x8adfB2924092E6d99572C4092136fe7B66b7ABfD"
 ```
 
 
+- Deploy contracts:
 
-- To run tests:
+```
+$ truffle deploy --network YOUR_NETWORK
+```
+
+- Run tests:
 
 ```
 $ truffle test
 ```
+
+For more Check out full documentation of Gnosis (here)[https://docs.gnosis.io/conditionaltokens/] on Automated Market Makers for the Prediction Markets 2.0 (Conditional Tokens) platform.
+
+
 
 ## License
 
